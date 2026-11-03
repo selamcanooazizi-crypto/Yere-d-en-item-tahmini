@@ -1,0 +1,60 @@
+name: build
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.12
+      - name: Generate project files
+        run: |
+          mkdir -p src/main/resources
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  maven { url = 'https://maven.fabricmc.net/' }
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          rootProject.name = 'itemdrop'
+          EOF
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2G
+          EOF
+          cat > build.gradle <<'EOF'
+          plugins { id 'fabric-loom' version '1.10-SNAPSHOT' }
+          version = '1.0.0'
+          base { archivesName = 'itemdrop' }
+          dependencies {
+              minecraft 'com.mojang:minecraft:1.21.4'
+              mappings 'net.fabricmc:yarn:1.21.4+build.8:v2'
+              modImplementation 'net.fabricmc:fabric-loader:0.16.10'
+              modImplementation 'net.fabricmc.fabric-api:fabric-api:0.119.3+1.21.4'
+          }
+          tasks.withType(JavaCompile).configureEach { options.release = 21 }
+          EOF
+          cat > src/main/resources/fabric.mod.json <<'EOF'
+          {
+            "schemaVersion": 1,
+            "id": "itemdrop",
+            "version": "1.0.0",
+            "name": "Item Drop",
+            "environment": "client",
+            "entrypoints": { "client": ["dev.itemdrop.ItemDropMod"] },
+            "depends": { "fabricloader": ">=0.16.10", "minecraft": "~1.21.4", "java": ">=21", "fabric-api": "*" }
+          }
+          EOF
+      - run: gradle build --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ItemDrop-jar
+          path: build/libs/itemdrop-1.0.0.jar
