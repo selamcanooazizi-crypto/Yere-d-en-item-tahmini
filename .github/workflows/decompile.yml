@@ -1,0 +1,24 @@
+name: decompile
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: |
+          curl -L -o vf.jar https://github.com/Vineflower/vineflower/releases/download/1.10.1/vineflower-1.10.1.jar
+          mkdir out pick
+          java -jar vf.jar alphadlc-0_0_9.jar out
+          for n in KillAura ElytraTarget ElytraFlight; do
+            find out -name "$n*.java" -exec cp {} pick/ \;
+          done
+          grep -rliE "super ?framework" out | head -20 > pick/LISTE.txt
+          for f in $(cat pick/LISTE.txt); do cp "$f" pick/ ; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kaynak
+          path: pick
